@@ -16,8 +16,6 @@ python () {
 
 DEPENDS = "virtual/${TARGET_PREFIX}gcc libgcc-initial linux-libc-headers"
 
-# nptl needs libgcc but dlopens it, so our shlibs code doesn't detect this
-#RDEPENDS_${PN} += "${@['','libgcc']['nptl' in '${GLIBC_ADDONS}']}"
 PROVIDES = "virtual/libc"
 PROVIDES += "virtual/libintl virtual/libiconv"
 inherit autotools texinfo systemd
@@ -57,8 +55,6 @@ EXTRA_OEMAKE += "SHELL=/bin/bash"
 do_configure_prepend() {
 	sed -e "s#@BASH@#/bin/sh#" -i ${S}/elf/ldd.bash.in
 }
-
-GLIBC_ADDONS ?= "nptl,libidn"
 
 # Enable backtrace from abort()
 do_configure_append_arm () {

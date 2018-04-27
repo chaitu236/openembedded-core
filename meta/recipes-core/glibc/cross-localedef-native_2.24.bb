@@ -33,7 +33,6 @@ SRC_URI = "${GLIBC_GIT_URI};branch=${SRCBRANCH};name=glibc \
            file://0020-eglibc-cherry-picked-from.patch \
            file://0021-eglibc-Clear-cache-lines-on-ppc8xx.patch \
            file://0022-eglibc-Resolve-__fpscr_values-on-SH4.patch \
-           file://0023-eglibc-Install-PIC-archives.patch \
            file://0024-eglibc-Forward-port-cross-locale-generation-support.patch \
            file://0025-Define-DUMMY_LOCALE_T-if-not-defined.patch \
 "
