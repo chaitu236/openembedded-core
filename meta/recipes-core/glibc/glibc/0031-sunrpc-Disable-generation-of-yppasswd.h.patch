@@ -1,0 +1,32 @@
+From 2773261eb451de870bd1696ae57737627078d226 Mon Sep 17 00:00:00 2001
+From: Chaitanya Vadrevu <chaitanya.vadrevu@ni.com>
+Date: Wed, 8 Jun 2022 17:40:09 -0500
+Subject: [PATCH] sunrpc: Disable generation of yppasswd.h
+
+libns2 in OE provides yppasswd.h so generating it in glibc causes
+conflict.
+Sun RPC was removed from newer glibc versions in commit
+5500cdba4018ddbda7909bc7f4f9718610b43cf0 but since that commit is very
+big and has other dependencies, creating this smaller commit.
+
+Signed-off-by: Chaitanya Vadrevu <chaitanya.vadrevu@ni.com>
+---
+ sunrpc/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sunrpc/Makefile b/sunrpc/Makefile
+index 789ef423e5..84b0cbb968 100644
+--- a/sunrpc/Makefile
++++ b/sunrpc/Makefile
+@@ -46,7 +46,7 @@ include ../Makeconfig
+ #	xdr_reference.c -> xdr_ref.c
+ 
+ rpcsvc = bootparam_prot.x nlm_prot.x rstat.x \
+-	 yppasswd.x klm_prot.x rex.x sm_inter.x mount.x \
++	 klm_prot.x rex.x sm_inter.x mount.x \
+ 	 rusers.x spray.x nfs_prot.x rquota.x key_prot.x
+ headers-in-tirpc = $(addprefix rpc/,auth.h auth_unix.h clnt.h pmap_clnt.h \
+ 				    pmap_prot.h pmap_rmt.h rpc.h rpc_msg.h \
+-- 
+2.34.1
+
