@@ -1,0 +1,1595 @@
+From bd09c5671bf03dcf66c17f84973380a016177636 Mon Sep 17 00:00:00 2001
+From: Thorsten Kukuk <kukuk@thkukuk.de>
+Date: Tue, 21 Mar 2017 15:14:27 +0100
+Subject: [PATCH] Deprecate libnsl by default (only shared library will be
+ build for backward compatibility, no linking possible) and disable building
+ of libnss_compat, libnss_nis and libnss_nisplus, except --enable-obsolete-nsl
+ option is given to configure.
+
+        * config.h.in: Add LINK_OBSOLETE_NSL.
+        * config.make.in: Add build-obsolete-nsl.
+        * configure.ac: Add obsolete-nsl option.
+        * include/libc-symbols.h: Define libnsl_hidden_nolink_def.
+        * include/rpcsvc/yp.h: Add missing functions as libnsl_hidden_proto.
+        * include/rpcsvc/nislib.h: Likewise.
+        * include/rpcsvc/ypclnt.h: Likewise.
+        * manual/install.texi: Document --enable-obsolete-nsl.
+        * nis/Makefile: Build only libnsl by default (add build-obsolete-nsl).
+        * nis/nis_add.c: Replace libnsl_hidden_def with
+        libnsl_hidden_nolink_def.
+        * nis/nis_addmember.c: Likewise.
+        * nis/nis_call.c: Likewise.
+        * nis/nis_clone_obj.c: Likewise.
+        * nis/nis_defaults.c: Likeise.
+        * nis/nis_domain_of_r.c: Likewise.
+        * nis/nis_error.c: Likewise.
+        * nis/nis_file.c: Likewise.
+        * nis/nis_free.c: Likewise.
+        * nis_local_names.c: Likewise.
+        * nis/nis_lookup.c: Likewise.
+        * nis/nis_modify.c: Likewise.
+        * nis/nis_print.c: Likewise.
+        * nis/nis_remove.c: Likewise.
+        * nis/nis_table.c: Likewise.
+        * nis/nis_util.c: Likewise.
+        * nis/nis_xdr.c: Likewise.
+        * nis/yp_xdr.c: Likewise.
+        * nis/ypclnt.c: Likewise.
+        * nis/ypupdate_xdr.c: Likewise.
+        * nis/nis_checkpoint.c: Add libnsl_hidden_nolink_def to all functions.
+        * nis/nis_clone_dir.c: Likewise.
+        * nis/nis_clone_res.c: Likewise.
+        * nis/nis_creategroup.c: Likewise.
+        * nis/nis_destroygroup.c: Likewise.
+        * nis/nis_domain_of.c: Likewise.
+        * nis/nis_getservlist.c: Likewise.
+        * nis/nis_ismember.c: Likewise.
+        * nis/nis_mkdir.c: Likewise.
+        * nis/nis_ping.c: Likewise.
+        * nis/nis_print_group_entry.c: Likewise.
+        * nis/nis_removemember.c: Likewise.
+        * nis/nis_rmdir.c: Likewise.
+        * nis/nis_server.c: Likewise.
+        * nis/nis_subr.c: Likewise.
+        * nis/nis_verifygroup.c: Likewise.
+
+Signed-off-by: Thorsten Kukuk <kukuk@suse.com>
+(cherry picked from commit 1e4d83f6fe38613e6f209ff09dfad8e69a6e1629)
+---
+ ChangeLog                   | 49 +++++++++++++++++++++++++++++++++++++
+ NEWS                        | 20 +++++++++++++++
+ config.h.in                 |  4 +++
+ config.make.in              |  1 +
+ configure                   | 18 ++++++++++++++
+ configure.ac                | 11 +++++++++
+ include/libc-symbols.h      |  6 +++++
+ include/rpcsvc/nislib.h     | 33 +++++++++++++++++++++++++
+ include/rpcsvc/yp.h         |  4 +++
+ include/rpcsvc/ypclnt.h     |  9 +++++++
+ manual/install.texi         |  7 ++++++
+ nis/Makefile                | 17 ++++++++++---
+ nis/nis_add.c               |  2 +-
+ nis/nis_addmember.c         |  1 +
+ nis/nis_call.c              | 12 ++++-----
+ nis/nis_checkpoint.c        |  1 +
+ nis/nis_clone_dir.c         |  1 +
+ nis/nis_clone_obj.c         |  2 +-
+ nis/nis_clone_res.c         |  1 +
+ nis/nis_creategroup.c       |  1 +
+ nis/nis_defaults.c          |  6 ++---
+ nis/nis_destroygroup.c      |  1 +
+ nis/nis_domain_of.c         |  1 +
+ nis/nis_domain_of_r.c       |  2 +-
+ nis/nis_error.c             |  7 ++++--
+ nis/nis_file.c              |  5 +++-
+ nis/nis_free.c              | 10 ++++----
+ nis/nis_getservlist.c       |  2 ++
+ nis/nis_ismember.c          |  1 +
+ nis/nis_local_names.c       |  8 +++---
+ nis/nis_lookup.c            |  2 +-
+ nis/nis_mkdir.c             |  1 +
+ nis/nis_modify.c            |  2 +-
+ nis/nis_ping.c              |  1 +
+ nis/nis_print.c             | 15 ++++++------
+ nis/nis_print_group_entry.c |  1 +
+ nis/nis_remove.c            |  2 +-
+ nis/nis_removemember.c      |  1 +
+ nis/nis_rmdir.c             |  1 +
+ nis/nis_server.c            |  3 +++
+ nis/nis_subr.c              | 14 ++++++-----
+ nis/nis_table.c             | 11 ++++++---
+ nis/nis_util.c              |  2 +-
+ nis/nis_verifygroup.c       |  1 +
+ nis/nis_xdr.c               |  8 +++---
+ nis/yp_xdr.c                | 47 +++++++++++++++++++----------------
+ nis/ypclnt.c                | 20 ++++++++++-----
+ nis/ypupdate_xdr.c          |  6 ++---
+ 48 files changed, 300 insertions(+), 81 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 86b15de74d..4f0faef980 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,52 @@
++2017-03-21  Thorsten Kukuk  <kukuk@suse.com>
++
++	* config.h.in: Add LINK_OBSOLETE_NSL.
++	* config.make.in: Add build-obsolete-nsl.
++	* configure.ac: Add obsolete-nsl option.
++	* include/libc-symbols.h: Define libnsl_hidden_nolink_def.
++	* include/rpcsvc/yp.h: Add missing functions as libnsl_hidden_proto.
++	* include/rpcsvc/nislib.h: Likewise.
++	* include/rpcsvc/ypclnt.h: Likewise.
++	* manual/install.texi: Document --enable-obsolete-nsl.
++	* nis/Makefile: Build only libnsl by default (add build-obsolete-nsl).
++	* nis/nis_add.c: Replace libnsl_hidden_def with
++	libnsl_hidden_nolink_def.
++	* nis/nis_addmember.c: Likewise.
++	* nis/nis_call.c: Likewise.
++	* nis/nis_clone_obj.c: Likewise.
++	* nis/nis_defaults.c: Likeise.
++	* nis/nis_domain_of_r.c: Likewise.
++	* nis/nis_error.c: Likewise.
++	* nis/nis_file.c: Likewise.
++	* nis/nis_free.c: Likewise.
++	* nis_local_names.c: Likewise.
++	* nis/nis_lookup.c: Likewise.
++	* nis/nis_modify.c: Likewise.
++	* nis/nis_print.c: Likewise.
++	* nis/nis_remove.c: Likewise.
++	* nis/nis_table.c: Likewise.
++	* nis/nis_util.c: Likewise.
++	* nis/nis_xdr.c: Likewise.
++	* nis/yp_xdr.c: Likewise.
++	* nis/ypclnt.c: Likewise.
++	* nis/ypupdate_xdr.c: Likewise.
++	* nis/nis_checkpoint.c: Add libnsl_hidden_nolink_def to all functions.
++	* nis/nis_clone_dir.c: Likewise.
++	* nis/nis_clone_res.c: Likewise.
++	* nis/nis_creategroup.c: Likewise.
++	* nis/nis_destroygroup.c: Likewise.
++	* nis/nis_domain_of.c: Likewise.
++	* nis/nis_getservlist.c: Likewise.
++	* nis/nis_ismember.c: Likewise.
++	* nis/nis_mkdir.c: Likewise.
++	* nis/nis_ping.c: Likewise.
++	* nis/nis_print_group_entry.c: Likewise.
++	* nis/nis_removemember.c: Likewise.
++	* nis/nis_rmdir.c: Likewise.
++	* nis/nis_server.c: Likewise.
++	* nis/nis_subr.c: Likewise.
++	* nis/nis_verifygroup.c: Likewise.
++
+ 2016-12-21  Joseph Myers  <joseph@codesourcery.com>
+ 
+ 	[BZ #20978]
+diff --git a/NEWS b/NEWS
+index b0447e7169..5aacd81fa2 100644
+--- a/NEWS
++++ b/NEWS
+@@ -7,6 +7,26 @@ using `glibc' in the "product" field.
+ 
+ Version 2.24
+ 
++* The NIS(+) name service modules, libnss_nis, libnss_nisplus, and
++  libnss_compat, are deprecated, and will not be built or installed by
++  default.  Replacement implementations based on TIRPC, which
++  additionally support IPv6, are available from
++  <https://github.com/thkukuk/libnss_{compat,nis,nisplus}>.
++
++* The NIS(+) support library, libnsl, is deprecated.  By default, a
++  compatibility shared library will be built and installed, but not
++  headers or development libraries.
++
++  Only a few NIS-related programs require this library.
++  A replacement implementation based on TIRPC is available from
++  <https://github.com/thkukuk/libnsl>.  Like the replacement NIS(+)
++  name service modules, the replacement supports IPv6, and it can be
++  coinstalled with the compatibility shared library from glibc.
++
++* New configure option --enable-obsolete-nsl will cause libnsl's
++  headers, and the NIS(+) name service modules, to be built and
++  installed.  This option may be removed in a future release.
++
+ * The minimum Linux kernel version that this version of the GNU C Library
+   can be used with is 3.2, except on i[4567]86 and x86_64, where Linux
+   kernel version 2.6.32 or later suffices (on architectures that already
+diff --git a/config.h.in b/config.h.in
+index 856ef6a69c..43871cef68 100644
+--- a/config.h.in
++++ b/config.h.in
+@@ -159,6 +159,10 @@
+    to link against.  */
+ #undef LINK_OBSOLETE_RPC
+ 
++/* Define if obsolete libnsl code should be made available for user-level
++   code to link against.  */
++#undef LINK_OBSOLETE_NSL
++
+ /* Define if Systemtap <sys/sdt.h> probes should be defined.  */
+ #undef USE_STAP_PROBE
+ 
+diff --git a/config.make.in b/config.make.in
+index 95c6f36876..0cd5427034 100644
+--- a/config.make.in
++++ b/config.make.in
+@@ -86,6 +86,7 @@ sysdeps-add-ons = @sysdeps_add_ons@
+ cross-compiling = @cross_compiling@
+ force-install = @force_install@
+ link-obsolete-rpc = @link_obsolete_rpc@
++build-obsolete-nsl = @build_obsolete_nsl@
+ build-nscd = @build_nscd@
+ use-nscd = @use_nscd@
+ build-hardcoded-path-in-tests= @hardcoded_path_in_tests@
+diff --git a/configure b/configure
+index facfd1f717..0b116a446e 100755
+--- a/configure
++++ b/configure
+@@ -662,6 +662,7 @@ add_on_subdirs
+ add_ons
+ build_pt_chown
+ build_nscd
++build_obsolete_nsl
+ link_obsolete_rpc
+ libc_cv_nss_crypt
+ enable_werror
+@@ -770,6 +771,7 @@ enable_werror
+ enable_multi_arch
+ enable_nss_crypt
+ enable_obsolete_rpc
++enable_obsolete_nsl
+ enable_systemtap
+ enable_build_nscd
+ enable_nscd
+@@ -1437,6 +1439,8 @@ Optional Features:
+   --enable-nss-crypt      enable libcrypt to use nss
+   --enable-obsolete-rpc   build and install the obsolete RPC code for
+                           link-time usage
++  --enable-obsolete-nsl   build and install the obsolete libnsl library and
++                          depending NSS modules
+   --enable-systemtap      enable systemtap static probe points [default=no]
+   --disable-build-nscd    disable building and installing the nscd daemon
+   --disable-nscd          library functions will not contact the nscd daemon
+@@ -3571,6 +3575,20 @@ if test "$link_obsolete_rpc" = yes; then
+ 
+ fi
+ 
++# Check whether --enable-obsolete-nsl was given.
++if test "${enable_obsolete_nsl+set}" = set; then :
++  enableval=$enable_obsolete_nsl; build_obsolete_nsl=$enableval
++else
++  build_obsolete_nsl=no
++fi
++
++
++
++if test "$build_obsolete_nsl" = yes; then
++  $as_echo "#define LINK_OBSOLETE_NSL 1" >>confdefs.h
++
++fi
++
+ # Check whether --enable-systemtap was given.
+ if test "${enable_systemtap+set}" = set; then :
+   enableval=$enable_systemtap; systemtap=$enableval
+diff --git a/configure.ac b/configure.ac
+index 47ba9b46d9..fd82d7159f 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -348,6 +348,17 @@ if test "$link_obsolete_rpc" = yes; then
+   AC_DEFINE(LINK_OBSOLETE_RPC)
+ fi
+ 
++AC_ARG_ENABLE([obsolete-nsl],
++              AC_HELP_STRING([--enable-obsolete-nsl],
++                             [build and install the obsolete libnsl library and depending NSS modules]),
++              [build_obsolete_nsl=$enableval],
++              [build_obsolete_nsl=no])
++AC_SUBST(build_obsolete_nsl)
++
++if test "$build_obsolete_nsl" = yes; then
++  AC_DEFINE(LINK_OBSOLETE_NSL)
++fi
++
+ AC_ARG_ENABLE([systemtap],
+               [AS_HELP_STRING([--enable-systemtap],
+ 	       [enable systemtap static probe points @<:@default=no@:>@])],
+diff --git a/include/libc-symbols.h b/include/libc-symbols.h
+index 4548e097dc..a9f5bd40ac 100644
+--- a/include/libc-symbols.h
++++ b/include/libc-symbols.h
+@@ -631,6 +631,12 @@ for linking")
+ # define libnsl_hidden_proto(name, attrs...) hidden_proto (name, ##attrs)
+ # define libnsl_hidden_tls_proto(name, attrs...) \
+   hidden_tls_proto (name, ##attrs)
++# ifdef LINK_OBSOLETE_NSL
++   /* libnsl_hidden_nolink should only get used in libnsl code.  */
++#  define libnsl_hidden_nolink_def(name, version) libnsl_hidden_def (name)
++# else
++#  define libnsl_hidden_nolink_def(name, version) hidden_nolink (name, libnsl, version)
++# endif
+ # define libnsl_hidden_def(name) hidden_def (name)
+ # define libnsl_hidden_weak(name) hidden_weak (name)
+ # define libnsl_hidden_ver(local, name) hidden_ver (local, name)
+diff --git a/include/rpcsvc/nislib.h b/include/rpcsvc/nislib.h
+index 635c513e4d..2baf1a8cad 100644
+--- a/include/rpcsvc/nislib.h
++++ b/include/rpcsvc/nislib.h
+@@ -17,6 +17,7 @@ libnsl_hidden_proto (nis_free_directory)
+ libnsl_hidden_proto (nis_free_object)
+ libnsl_hidden_proto (nis_freeresult)
+ libnsl_hidden_proto (readColdStartFile)
++libnsl_hidden_proto (writeColdStartFile)
+ libnsl_hidden_proto (nis_print_rights)
+ libnsl_hidden_proto (nis_print_directory)
+ libnsl_hidden_proto (nis_print_group)
+@@ -41,6 +42,38 @@ libnsl_hidden_proto (__nis_default_owner)
+ libnsl_hidden_proto (__nis_default_group)
+ libnsl_hidden_proto (__nis_default_access)
+ libnsl_hidden_proto (nis_clone_object)
++libnsl_hidden_proto (nis_clone_result)
++libnsl_hidden_proto (nis_print_group_entry)
++libnsl_hidden_proto (nis_verifygroup)
++libnsl_hidden_proto (nis_leaf_of)
++libnsl_hidden_proto (nis_read_obj)
++libnsl_hidden_proto (nis_print_result)
++libnsl_hidden_proto (nis_sperror)
++libnsl_hidden_proto (nis_add_entry)
++libnsl_hidden_proto (nis_mkdir)
++libnsl_hidden_proto (nis_getservlist)
++libnsl_hidden_proto (nis_stats)
++libnsl_hidden_proto (nis_write_obj)
++libnsl_hidden_proto (nis_servstate)
++libnsl_hidden_proto (nis_freetags)
++libnsl_hidden_proto (nis_modify_entry)
++libnsl_hidden_proto (nis_remove_entry)
++libnsl_hidden_proto (nis_first_entry)
++libnsl_hidden_proto (nis_next_entry)
++libnsl_hidden_proto (nis_checkpoint)
++libnsl_hidden_proto (nis_perror)
++libnsl_hidden_proto (nis_lerror)
++libnsl_hidden_proto (nis_freeservlist)
++libnsl_hidden_proto (nis_ismember)
++libnsl_hidden_proto (nis_creategroup)
++libnsl_hidden_proto (nis_destroygroup)
++libnsl_hidden_proto (nis_name_of)
++libnsl_hidden_proto (nis_ping)
++libnsl_hidden_proto (nis_rmdir)
++libnsl_hidden_proto (nis_addmember)
++libnsl_hidden_proto (nis_removemember)
++libnsl_hidden_proto (nis_domain_of)
++libnsl_hidden_proto (nis_clone_directory)
+ 
+ extern const_nis_name __nis_domain_of (const_nis_name) __THROW;
+ 
+diff --git a/include/rpcsvc/yp.h b/include/rpcsvc/yp.h
+index 04a973eae7..1352bb3fbc 100644
+--- a/include/rpcsvc/yp.h
++++ b/include/rpcsvc/yp.h
+@@ -22,5 +22,9 @@ libnsl_hidden_proto (xdr_ypresp_maplist)
+ libnsl_hidden_proto (xdr_ypresp_order)
+ libnsl_hidden_proto (xdr_ypbind_resp)
+ libnsl_hidden_proto (xdr_ypresp_master)
++libnsl_hidden_proto (xdr_ypreq_xfr)
++libnsl_hidden_proto (xdr_ypresp_xfr)
++libnsl_hidden_proto (xdr_yppushresp_xfr)
++libnsl_hidden_proto (xdr_ypbind_setdom)
+ 
+ #endif
+diff --git a/include/rpcsvc/ypclnt.h b/include/rpcsvc/ypclnt.h
+index b38dc6bb4c..e8090b8c4a 100644
+--- a/include/rpcsvc/ypclnt.h
++++ b/include/rpcsvc/ypclnt.h
+@@ -6,5 +6,14 @@ libnsl_hidden_proto (yp_bind)
+ libnsl_hidden_proto (yp_get_default_domain)
+ libnsl_hidden_proto (ypprot_err)
+ libnsl_hidden_proto (yp_master)
++libnsl_hidden_proto (yp_update)
++libnsl_hidden_proto (yperr_string)
++libnsl_hidden_proto (yp_unbind)
++libnsl_hidden_proto (yp_order)
++libnsl_hidden_proto (yp_first)
++libnsl_hidden_proto (yp_next)
++libnsl_hidden_proto (yp_match)
++libnsl_hidden_proto (yp_all)
++libnsl_hidden_proto (__yp_check)
+ 
+ #endif
+diff --git a/manual/install.texi b/manual/install.texi
+index 79ee45fcdb..0103b858c1 100644
+--- a/manual/install.texi
++++ b/manual/install.texi
+@@ -189,6 +189,13 @@ configure with @option{--disable-werror}.
+ By default for x86_64, @theglibc{} is built with vector math library.
+ Use this option to disable vector math library.
+ 
++@item --enable-obsolete-nsl
++By default, libnsl is only built as shared library for backward
++compatibility and the NSS modules libnss_compat, libnss_nis and
++libnss_nisplus are not built at all.
++Use this option to enable libnsl with all depending NSS modules and
++header files.
++
+ @item --build=@var{build-system}
+ @itemx --host=@var{host-system}
+ These options are for cross-compiling.  If you specify both options and
+diff --git a/nis/Makefile b/nis/Makefile
+index 991460faa6..f5f020026a 100644
+--- a/nis/Makefile
++++ b/nis/Makefile
+@@ -24,9 +24,8 @@ include ../Makeconfig
+ 
+ aux			:= nis_hash
+ 
+-ifeq ($(link-obsolete-rpc),yes)
++ifeq ($(build-obsolete-nsl),yes)
+ headers			:= $(wildcard rpcsvc/*.[hx])
+-endif
+ 
+ # These are the databases available for the nis (and perhaps later nisplus)
+ # service.  This must be a superset of the services in nss.
+@@ -35,15 +34,21 @@ databases		= proto service hosts network grp pwd rpc ethers \
+ 
+ # Specify rules for the nss_* modules.
+ services		:= nis nisplus compat
++endif
+ 
+-extra-libs		= libnsl $(services:%=libnss_%)
++extra-libs		= libnsl
++ifeq ($(build-obsolete-nsl),yes)
++extra-libs += $(services:%=libnss_%)
++endif
+ # These libraries will be built in the `others' pass rather than
+ # the `lib' pass, because they depend on libc.so being built already.
+ extra-libs-others	= $(extra-libs)
+ 
++ifeq ($(build-obsolete-nsl),yes)
+ # The sources are found in the appropriate subdir.
+ subdir-dirs = $(services:%=nss_%)
+ vpath %.c $(subdir-dirs)
++endif
+ 
+ libnsl-routines = yp_xdr ypclnt ypupdate_xdr \
+ 		  nis_subr nis_local_names nis_free nis_file \
+@@ -57,6 +62,7 @@ libnsl-routines = yp_xdr ypclnt ypupdate_xdr \
+ 		  nis_findserv nis_callback nis_clone_dir nis_clone_obj\
+ 		  nis_clone_res nss-default
+ 
++ifeq ($(build-obsolete-nsl),yes)
+ libnss_compat-routines	:= $(addprefix compat-,grp pwd spwd initgroups)
+ libnss_compat-inhibit-o	= $(filter-out .os,$(object-suffixes))
+ 
+@@ -67,14 +73,17 @@ libnss_nis-inhibit-o	= $(filter-out .os,$(object-suffixes))
+ libnss_nisplus-routines	:= $(addprefix nisplus-,$(databases)) nisplus-parser \
+ 			   nss-nisplus nisplus-initgroups
+ libnss_nisplus-inhibit-o = $(filter-out .os,$(object-suffixes))
++endif
+ 
+ include ../Rules
+ 
+ 
++ifeq ($(build-obsolete-nsl),yes)
+ $(objpfx)libnss_compat.so: $(objpfx)libnsl.so$(libnsl.so-version)
+ $(objpfx)libnss_nis.so: $(objpfx)libnsl.so$(libnsl.so-version) \
+ 			$(common-objpfx)nss/libnss_files.so
+ $(objpfx)libnss_nisplus.so: $(objpfx)libnsl.so$(libnsl.so-version)
++endif
+ 
+ libnsl-libc = $(common-objpfx)linkobj/libc.so
+ # Target-specific variable setting to link objects using deprecated
+@@ -87,5 +96,7 @@ $(services:%=$(objpfx)libnss_%.so) $(objpfx)libnsl.so: \
+ ifeq ($(build-shared),yes)
+ $(others:%=$(objpfx)%): $(objpfx)libnsl.so$(libnsl.so-version)
+ else
++ifeq ($(build-obsolete-nsl),yes)
+ $(others:%=$(objpfx)%): $(objpfx)libnsl.a
+ endif
++endif
+diff --git a/nis/nis_add.c b/nis/nis_add.c
+index 3a2315df46..38ec39ff92 100644
+--- a/nis/nis_add.c
++++ b/nis/nis_add.c
+@@ -71,4 +71,4 @@ nis_add (const_nis_name name, const nis_object *obj2)
+ 
+   return res;
+ }
+-libnsl_hidden_def (nis_add)
++libnsl_hidden_nolink_def (nis_add, GLIBC_2_1)
+diff --git a/nis/nis_addmember.c b/nis/nis_addmember.c
+index cf33b1a1a7..55a245dd62 100644
+--- a/nis/nis_addmember.c
++++ b/nis/nis_addmember.c
+@@ -90,3 +90,4 @@ nis_addmember (const_nis_name member, const_nis_name group)
+   else
+     return NIS_FAIL;
+ }
++libnsl_hidden_nolink_def (nis_addmember, GLIBC_2_1)
+diff --git a/nis/nis_call.c b/nis/nis_call.c
+index cb7839a6f8..1c8349e718 100644
+--- a/nis/nis_call.c
++++ b/nis/nis_call.c
+@@ -65,7 +65,7 @@ __nisbind_destroy (dir_binding *bind)
+       clnt_destroy (bind->clnt);
+     }
+ }
+-libnsl_hidden_def (__nisbind_destroy)
++libnsl_hidden_nolink_def (__nisbind_destroy, GLIBC_2_1)
+ 
+ nis_error
+ __nisbind_next (dir_binding *bind)
+@@ -107,7 +107,7 @@ __nisbind_next (dir_binding *bind)
+ 
+   return NIS_FAIL;
+ }
+-libnsl_hidden_def (__nisbind_next)
++libnsl_hidden_nolink_def (__nisbind_next, GLIBC_2_1)
+ 
+ static struct ckey_cache_entry
+ {
+@@ -246,7 +246,7 @@ __nisbind_connect (dir_binding *dbp)
+ 
+   return NIS_SUCCESS;
+ }
+-libnsl_hidden_def (__nisbind_connect)
++libnsl_hidden_nolink_def (__nisbind_connect, GLIBC_2_1)
+ 
+ nis_error
+ __nisbind_create (dir_binding *dbp, const nis_server *serv_val,
+@@ -290,7 +290,7 @@ __nisbind_create (dir_binding *dbp, const nis_server *serv_val,
+ 
+   return NIS_SUCCESS;
+ }
+-libnsl_hidden_def (__nisbind_create)
++libnsl_hidden_nolink_def (__nisbind_create, GLIBC_2_1)
+ 
+ /* __nisbind_connect (dbp) must be run before calling this function !
+    So we could use the same binding twice */
+@@ -374,7 +374,7 @@ __do_niscall3 (dir_binding *dbp, u_long prog, xdrproc_t xargs, caddr_t req,
+ 
+   return retcode;
+ }
+-libnsl_hidden_def (__do_niscall3)
++libnsl_hidden_nolink_def (__do_niscall3, GLIBC_PRIVATE)
+ 
+ 
+ nis_error
+@@ -816,7 +816,7 @@ __prepare_niscall (const_nis_name name, directory_obj **dirp,
+ 
+   return retcode;
+ }
+-libnsl_hidden_def (__prepare_niscall)
++libnsl_hidden_nolink_def (__prepare_niscall, GLIBC_PRIVATE)
+ 
+ 
+ nis_error
+diff --git a/nis/nis_checkpoint.c b/nis/nis_checkpoint.c
+index cb6e336705..77456343b7 100644
+--- a/nis/nis_checkpoint.c
++++ b/nis/nis_checkpoint.c
+@@ -76,3 +76,4 @@ nis_checkpoint (const_nis_name dirname)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_checkpoint, GLIBC_2_1)
+diff --git a/nis/nis_clone_dir.c b/nis/nis_clone_dir.c
+index 3dd9448ccc..9b77de87af 100644
+--- a/nis/nis_clone_dir.c
++++ b/nis/nis_clone_dir.c
+@@ -71,3 +71,4 @@ nis_clone_directory (const directory_obj *src, directory_obj *dest)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def(nis_clone_directory, GLIBC_2_1)
+diff --git a/nis/nis_clone_obj.c b/nis/nis_clone_obj.c
+index fa8b3d3119..764139cf5c 100644
+--- a/nis/nis_clone_obj.c
++++ b/nis/nis_clone_obj.c
+@@ -64,4 +64,4 @@ nis_clone_object (const nis_object *src, nis_object *dest)
+ 
+   return res;
+ }
+-libnsl_hidden_def (nis_clone_object)
++libnsl_hidden_nolink_def (nis_clone_object, GLIBC_2_1)
+diff --git a/nis/nis_clone_res.c b/nis/nis_clone_res.c
+index 1af6937b8a..ac9dccd168 100644
+--- a/nis/nis_clone_res.c
++++ b/nis/nis_clone_res.c
+@@ -71,3 +71,4 @@ nis_clone_result (const nis_result *src, nis_result *dest)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_clone_result, GLIBC_2_1)
+diff --git a/nis/nis_creategroup.c b/nis/nis_creategroup.c
+index fa5ec29b58..4ae1afd3b4 100644
+--- a/nis/nis_creategroup.c
++++ b/nis/nis_creategroup.c
+@@ -81,3 +81,4 @@ nis_creategroup (const_nis_name group, unsigned int flags)
+     }
+   return NIS_FAIL;
+ }
++libnsl_hidden_nolink_def (nis_creategroup, GLIBC_2_1)
+diff --git a/nis/nis_defaults.c b/nis/nis_defaults.c
+index b67cb01c48..fe9fc86ee8 100644
+--- a/nis/nis_defaults.c
++++ b/nis/nis_defaults.c
+@@ -375,7 +375,7 @@ __nis_default_owner (char *defaults)
+ 
+   return strdup (default_owner ?: nis_local_principal ());
+ }
+-libnsl_hidden_def (__nis_default_owner)
++libnsl_hidden_nolink_def (__nis_default_owner, GLIBC_2_1)
+ 
+ 
+ nis_name
+@@ -402,7 +402,7 @@ __nis_default_group (char *defaults)
+ 
+   return strdup (default_group ?: nis_local_group ());
+ }
+-libnsl_hidden_def (__nis_default_group)
++libnsl_hidden_nolink_def (__nis_default_group, GLIBC_2_1)
+ 
+ 
+ uint32_t
+@@ -452,4 +452,4 @@ __nis_default_access (char *param, unsigned int defaults)
+ 
+   return result;
+ }
+-libnsl_hidden_def (__nis_default_access)
++libnsl_hidden_nolink_def (__nis_default_access, GLIBC_2_1)
+diff --git a/nis/nis_destroygroup.c b/nis/nis_destroygroup.c
+index 1196502a1f..244545f9b9 100644
+--- a/nis/nis_destroygroup.c
++++ b/nis/nis_destroygroup.c
+@@ -49,3 +49,4 @@ nis_destroygroup (const_nis_name group)
+     return NIS_FAIL;
+ 
+ }
++libnsl_hidden_nolink_def (nis_destroygroup, GLIBC_2_1)
+diff --git a/nis/nis_domain_of.c b/nis/nis_domain_of.c
+index df1e8f9d9d..8dec8b9e13 100644
+--- a/nis/nis_domain_of.c
++++ b/nis/nis_domain_of.c
+@@ -25,6 +25,7 @@ nis_domain_of (const_nis_name name)
+ 
+   return nis_domain_of_r (name, result, NIS_MAXNAMELEN);
+ }
++libnsl_hidden_nolink_def (nis_domain_of, GLIBC_2_1)
+ 
+ const_nis_name
+ __nis_domain_of (const_nis_name name)
+diff --git a/nis/nis_domain_of_r.c b/nis/nis_domain_of_r.c
+index adf5d3dd68..86136e9195 100644
+--- a/nis/nis_domain_of_r.c
++++ b/nis/nis_domain_of_r.c
+@@ -58,4 +58,4 @@ nis_domain_of_r (const_nis_name name, char *buffer, size_t buflen)
+ 
+   return memcpy (buffer, cptr, cptr_len + 1);
+ }
+-libnsl_hidden_def (nis_domain_of_r)
++libnsl_hidden_nolink_def (nis_domain_of_r, GLIBC_2_1)
+diff --git a/nis/nis_error.c b/nis/nis_error.c
+index aa2719bc91..aa6f5accca 100644
+--- a/nis/nis_error.c
++++ b/nis/nis_error.c
+@@ -59,19 +59,21 @@ nis_sperrno (const nis_error status)
+   else
+     return gettext (msgstr.str + msgidx[status]);
+ }
+-libnsl_hidden_def (nis_sperrno)
++libnsl_hidden_nolink_def (nis_sperrno, GLIBC_2_1)
+ 
+ void
+ nis_perror (const nis_error status, const char *label)
+ {
+   fprintf (stderr, "%s: %s\n", label, nis_sperrno (status));
+ }
++libnsl_hidden_nolink_def (nis_perror, GLIBC_2_1)
+ 
+ void
+ nis_lerror (const nis_error status, const char *label)
+ {
+   syslog (LOG_ERR, "%s: %s", label, nis_sperrno (status));
+ }
++libnsl_hidden_nolink_def (nis_lerror, GLIBC_2_1)
+ 
+ char *
+ nis_sperror_r (const nis_error status, const char *label,
+@@ -86,7 +88,7 @@ nis_sperror_r (const nis_error status, const char *label,
+ 
+   return buffer;
+ }
+-libnsl_hidden_def (nis_sperror_r)
++libnsl_hidden_nolink_def (nis_sperror_r, GLIBC_2_1)
+ 
+ char *
+ nis_sperror (const nis_error status, const char *label)
+@@ -95,3 +97,4 @@ nis_sperror (const nis_error status, const char *label)
+ 
+   return nis_sperror_r (status, label, buffer, sizeof (buffer));
+ }
++libnsl_hidden_nolink_def (nis_sperror, GLIBC_2_1)
+diff --git a/nis/nis_file.c b/nis/nis_file.c
+index aae8723301..ca53a7d40f 100644
+--- a/nis/nis_file.c
++++ b/nis/nis_file.c
+@@ -80,13 +80,14 @@ readColdStartFile (void)
+   return read_nis_obj (cold_start_file, (iofct_t) _xdr_directory_obj,
+ 		       (freefct_t) nis_free_directory, sizeof (directory_obj));
+ }
+-libnsl_hidden_def (readColdStartFile)
++libnsl_hidden_nolink_def (readColdStartFile, GLIBC_2_1)
+ 
+ bool_t
+ writeColdStartFile (const directory_obj *obj)
+ {
+   return write_nis_obj (cold_start_file, obj, (iofct_t) _xdr_directory_obj);
+ }
++libnsl_hidden_nolink_def (writeColdStartFile, GLIBC_2_1)
+ 
+ nis_object *
+ nis_read_obj (const char *name)
+@@ -94,9 +95,11 @@ nis_read_obj (const char *name)
+   return read_nis_obj (name, (iofct_t) _xdr_nis_object,
+ 		       (freefct_t) nis_free_object, sizeof (nis_object));
+ }
++libnsl_hidden_nolink_def (nis_read_obj, GLIBC_2_1)
+ 
+ bool_t
+ nis_write_obj (const char *name, const nis_object *obj)
+ {
+   return write_nis_obj (name, obj, (iofct_t) _xdr_nis_object);
+ }
++libnsl_hidden_nolink_def (nis_write_obj, GLIBC_2_1)
+diff --git a/nis/nis_free.c b/nis/nis_free.c
+index dbb117888c..9cf90c2660 100644
+--- a/nis/nis_free.c
++++ b/nis/nis_free.c
+@@ -28,7 +28,7 @@ __free_fdresult (fd_result *res)
+       free (res);
+     }
+ }
+-libnsl_hidden_def (__free_fdresult)
++libnsl_hidden_nolink_def (__free_fdresult, GLIBC_2_1)
+ 
+ void
+ nis_free_request (ib_request *ibreq)
+@@ -39,7 +39,7 @@ nis_free_request (ib_request *ibreq)
+       free (ibreq);
+     }
+ }
+-libnsl_hidden_def (nis_free_request)
++libnsl_hidden_nolink_def (nis_free_request, GLIBC_2_1)
+ 
+ void
+ nis_free_directory (directory_obj *obj)
+@@ -50,7 +50,7 @@ nis_free_directory (directory_obj *obj)
+       free (obj);
+     }
+ }
+-libnsl_hidden_def (nis_free_directory)
++libnsl_hidden_nolink_def (nis_free_directory, GLIBC_2_1)
+ 
+ void
+ nis_free_object (nis_object *obj)
+@@ -61,7 +61,7 @@ nis_free_object (nis_object *obj)
+       free (obj);
+     }
+ }
+-libnsl_hidden_def (nis_free_object)
++libnsl_hidden_nolink_def (nis_free_object, GLIBC_2_1)
+ 
+ void
+ nis_freeresult (nis_result *res)
+@@ -72,4 +72,4 @@ nis_freeresult (nis_result *res)
+       free (res);
+     }
+ }
+-libnsl_hidden_def (nis_freeresult)
++libnsl_hidden_nolink_def (nis_freeresult, GLIBC_2_1)
+diff --git a/nis/nis_getservlist.c b/nis/nis_getservlist.c
+index ca1769921d..56729d6f64 100644
+--- a/nis/nis_getservlist.c
++++ b/nis/nis_getservlist.c
+@@ -148,6 +148,7 @@ nis_getservlist (const_nis_name dir)
+ 
+   return serv;
+ }
++libnsl_hidden_nolink_def (nis_getservlist, GLIBC_2_1)
+ 
+ void
+ nis_freeservlist (nis_server **serv)
+@@ -166,3 +167,4 @@ nis_freeservlist (nis_server **serv)
+     }
+   free (serv);
+ }
++libnsl_hidden_nolink_def (nis_freeservlist, GLIBC_2_1)
+diff --git a/nis/nis_ismember.c b/nis/nis_ismember.c
+index ea13505188..786b53fde7 100644
+--- a/nis/nis_ismember.c
++++ b/nis/nis_ismember.c
+@@ -146,3 +146,4 @@ nis_ismember (const_nis_name principal, const_nis_name group)
+   else
+     return FALSE;
+ }
++libnsl_hidden_nolink_def (nis_ismember, GLIBC_2_1)
+diff --git a/nis/nis_local_names.c b/nis/nis_local_names.c
+index a127bfb6c9..bf9d0abf8b 100644
+--- a/nis/nis_local_names.c
++++ b/nis/nis_local_names.c
+@@ -49,7 +49,7 @@ nis_local_group (void)
+ 
+   return __nisgroup;
+ }
+-libnsl_hidden_def (nis_local_group)
++libnsl_hidden_nolink_def (nis_local_group, GLIBC_2_1)
+ 
+ nis_name
+ nis_local_directory (void)
+@@ -75,7 +75,7 @@ nis_local_directory (void)
+ 
+   return __nisdomainname;
+ }
+-libnsl_hidden_def (nis_local_directory)
++libnsl_hidden_nolink_def (nis_local_directory, GLIBC_2_1)
+ 
+ nis_name
+ nis_local_principal (void)
+@@ -140,7 +140,7 @@ LOCAL entry for UID %d in directory %s not unique\n"),
+     }
+   return __principal;
+ }
+-libnsl_hidden_def (nis_local_principal)
++libnsl_hidden_nolink_def (nis_local_principal, GLIBC_2_1)
+ 
+ nis_name
+ nis_local_host (void)
+@@ -174,4 +174,4 @@ nis_local_host (void)
+ 
+   return __nishostname;
+ }
+-libnsl_hidden_def (nis_local_host)
++libnsl_hidden_nolink_def (nis_local_host, GLIBC_2_1)
+diff --git a/nis/nis_lookup.c b/nis/nis_lookup.c
+index 37154ae494..0fdc968dac 100644
+--- a/nis/nis_lookup.c
++++ b/nis/nis_lookup.c
+@@ -215,4 +215,4 @@ nis_lookup (const_nis_name name, const unsigned int flags)
+ 
+   return res;
+ }
+-libnsl_hidden_def (nis_lookup)
++libnsl_hidden_nolink_def (nis_lookup, GLIBC_2_1)
+diff --git a/nis/nis_mkdir.c b/nis/nis_mkdir.c
+index 7dbed2b4b0..b3c49e26e8 100644
+--- a/nis/nis_mkdir.c
++++ b/nis/nis_mkdir.c
+@@ -40,3 +40,4 @@ nis_mkdir (const_nis_name dir, const nis_server *server)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_mkdir, GLIBC_2_1)
+diff --git a/nis/nis_modify.c b/nis/nis_modify.c
+index b7bdf67125..38bf8e491c 100644
+--- a/nis/nis_modify.c
++++ b/nis/nis_modify.c
+@@ -71,4 +71,4 @@ nis_modify (const_nis_name name, const nis_object *obj2)
+ 
+   return res;
+ }
+-libnsl_hidden_def (nis_modify)
++libnsl_hidden_nolink_def (nis_modify, GLIBC_2_1)
+diff --git a/nis/nis_ping.c b/nis/nis_ping.c
+index 34eb992cec..f1e2e468f5 100644
+--- a/nis/nis_ping.c
++++ b/nis/nis_ping.c
+@@ -67,3 +67,4 @@ nis_ping (const_nis_name dirname, unsigned int utime,
+ 		   (caddr_t) NULL, 0, NULL);
+   nis_freeresult (res);
+ }
++libnsl_hidden_nolink_def (nis_ping, GLIBC_2_1)
+diff --git a/nis/nis_print.c b/nis/nis_print.c
+index 344054b00d..b79d9eeb7c 100644
+--- a/nis/nis_print.c
++++ b/nis/nis_print.c
+@@ -156,7 +156,7 @@ nis_print_rights (const unsigned int access)
+     }
+   fputs (result, stdout);
+ }
+-libnsl_hidden_def (nis_print_rights)
++libnsl_hidden_nolink_def (nis_print_rights, GLIBC_2_1)
+ 
+ void
+ nis_print_directory (const directory_obj *dir)
+@@ -244,7 +244,7 @@ nis_print_directory (const directory_obj *dir)
+ 	}
+     }
+ }
+-libnsl_hidden_def (nis_print_directory)
++libnsl_hidden_nolink_def (nis_print_directory, GLIBC_2_1)
+ 
+ void
+ nis_print_group (const group_obj *obj)
+@@ -259,7 +259,7 @@ nis_print_group (const group_obj *obj)
+   for (i = 0; i < obj->gr_members.gr_members_len; i++)
+     printf ("\t%s\n", obj->gr_members.gr_members_val[i]);
+ }
+-libnsl_hidden_def (nis_print_group)
++libnsl_hidden_nolink_def (nis_print_group, GLIBC_2_1)
+ 
+ void
+ nis_print_table (const table_obj *obj)
+@@ -282,7 +282,7 @@ nis_print_table (const table_obj *obj)
+       fputc ('\n', stdout);
+     }
+ }
+-libnsl_hidden_def (nis_print_table)
++libnsl_hidden_nolink_def (nis_print_table, GLIBC_2_1)
+ 
+ void
+ nis_print_link (const link_obj *obj)
+@@ -292,7 +292,7 @@ nis_print_link (const link_obj *obj)
+   printf (_("Linked to : %s\n"), obj->li_name);
+   /* XXX Print the attributes here, if they exists */
+ }
+-libnsl_hidden_def (nis_print_link)
++libnsl_hidden_nolink_def (nis_print_link, GLIBC_2_1)
+ 
+ void
+ nis_print_entry (const entry_obj *obj)
+@@ -316,7 +316,7 @@ nis_print_entry (const entry_obj *obj)
+ 		obj->en_cols.en_cols_val[i].ec_value.ec_value_val);
+     }
+ }
+-libnsl_hidden_def (nis_print_entry)
++libnsl_hidden_nolink_def (nis_print_entry, GLIBC_2_1)
+ 
+ void
+ nis_print_object (const nis_object * obj)
+@@ -362,7 +362,7 @@ nis_print_object (const nis_object * obj)
+       break;
+     }
+ }
+-libnsl_hidden_def (nis_print_object)
++libnsl_hidden_nolink_def (nis_print_object, GLIBC_2_1)
+ 
+ void
+ nis_print_result (const nis_result *res)
+@@ -378,3 +378,4 @@ nis_print_result (const nis_result *res)
+       nis_print_object (&res->objects.objects_val[i]);
+     }
+ }
++libnsl_hidden_nolink_def (nis_print_result, GLIBC_2_1)
+diff --git a/nis/nis_print_group_entry.c b/nis/nis_print_group_entry.c
+index 710368c056..49e95b0c5e 100644
+--- a/nis/nis_print_group_entry.c
++++ b/nis/nis_print_group_entry.c
+@@ -171,3 +171,4 @@ nis_print_group_entry (const_nis_name group)
+       nis_freeresult (res);
+     }
+ }
++libnsl_hidden_nolink_def (nis_print_group_entry, GLIBC_2_1)
+diff --git a/nis/nis_remove.c b/nis/nis_remove.c
+index 4491f148b9..5a6b78b155 100644
+--- a/nis/nis_remove.c
++++ b/nis/nis_remove.c
+@@ -55,4 +55,4 @@ nis_remove (const_nis_name name, const nis_object *obj)
+ 
+   return res;
+ }
+-libnsl_hidden_def (nis_remove)
++libnsl_hidden_nolink_def (nis_remove, GLIBC_2_1)
+diff --git a/nis/nis_removemember.c b/nis/nis_removemember.c
+index 8b24032558..a8d5e14412 100644
+--- a/nis/nis_removemember.c
++++ b/nis/nis_removemember.c
+@@ -89,3 +89,4 @@ nis_removemember (const_nis_name member, const_nis_name group)
+   else
+     return NIS_FAIL;
+ }
++libnsl_hidden_nolink_def (nis_removemember, GLIBC_2_1)
+diff --git a/nis/nis_rmdir.c b/nis/nis_rmdir.c
+index 2834f6377e..b728a09dc6 100644
+--- a/nis/nis_rmdir.c
++++ b/nis/nis_rmdir.c
+@@ -38,3 +38,4 @@ nis_rmdir (const_nis_name dir, const nis_server *server)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_rmdir, GLIBC_2_1)
+diff --git a/nis/nis_server.c b/nis/nis_server.c
+index 7f7ddaa0fc..6fd1cf5861 100644
+--- a/nis/nis_server.c
++++ b/nis/nis_server.c
+@@ -47,6 +47,7 @@ nis_servstate (const nis_server *serv, const nis_tag *tags,
+ 
+   return NIS_SUCCESS;
+ }
++libnsl_hidden_nolink_def (nis_servstate, GLIBC_2_1)
+ 
+ nis_error
+ nis_stats (const nis_server *serv, const nis_tag *tags,
+@@ -73,6 +74,7 @@ nis_stats (const nis_server *serv, const nis_tag *tags,
+ 
+   return NIS_SUCCESS;
+ }
++libnsl_hidden_nolink_def (nis_stats, GLIBC_2_1)
+ 
+ void
+ nis_freetags (nis_tag *tags, const int numtags)
+@@ -83,3 +85,4 @@ nis_freetags (nis_tag *tags, const int numtags)
+     free (tags[i].tag_val);
+   free (tags);
+ }
++libnsl_hidden_nolink_def (nis_freetags, GLIBC_2_1)
+diff --git a/nis/nis_subr.c b/nis/nis_subr.c
+index 64b92d1e05..aea08891b2 100644
+--- a/nis/nis_subr.c
++++ b/nis/nis_subr.c
+@@ -27,6 +27,7 @@ nis_leaf_of (const_nis_name name)
+ 
+   return nis_leaf_of_r (name, result, NIS_MAXNAMELEN);
+ }
++libnsl_hidden_nolink_def (nis_leaf_of, GLIBC_2_1)
+ 
+ nis_name
+ nis_leaf_of_r (const_nis_name name, char *buffer, size_t buflen)
+@@ -48,7 +49,7 @@ nis_leaf_of_r (const_nis_name name, char *buffer, size_t buflen)
+ 
+   return buffer;
+ }
+-libnsl_hidden_def (nis_leaf_of_r)
++libnsl_hidden_nolink_def (nis_leaf_of_r, GLIBC_2_1)
+ 
+ nis_name
+ nis_name_of (const_nis_name name)
+@@ -57,6 +58,7 @@ nis_name_of (const_nis_name name)
+ 
+   return nis_name_of_r (name, result, NIS_MAXNAMELEN);
+ }
++libnsl_hidden_nolink_def (nis_name_of, GLIBC_2_1)
+ 
+ nis_name
+ nis_name_of_r (const_nis_name name, char *buffer, size_t buflen)
+@@ -86,7 +88,7 @@ nis_name_of_r (const_nis_name name, char *buffer, size_t buflen)
+ 
+   return buffer;
+ }
+-libnsl_hidden_def (nis_name_of_r)
++libnsl_hidden_nolink_def (nis_name_of_r, GLIBC_2_1)
+ 
+ static int __always_inline
+ count_dots (const_nis_name str)
+@@ -288,7 +290,7 @@ nis_getnames (const_nis_name name)
+ 
+   return getnames;
+ }
+-libnsl_hidden_def (nis_getnames)
++libnsl_hidden_nolink_def (nis_getnames, GLIBC_2_1)
+ 
+ void
+ nis_freenames (nis_name *names)
+@@ -303,7 +305,7 @@ nis_freenames (nis_name *names)
+ 
+   free (names);
+ }
+-libnsl_hidden_def  (nis_freenames)
++libnsl_hidden_nolink_def  (nis_freenames, GLIBC_2_1)
+ 
+ name_pos
+ nis_dir_cmp (const_nis_name n1, const_nis_name n2)
+@@ -341,11 +343,11 @@ nis_dir_cmp (const_nis_name n1, const_nis_name n2)
+ 
+     }
+ }
+-libnsl_hidden_def (nis_dir_cmp)
++libnsl_hidden_nolink_def (nis_dir_cmp, GLIBC_2_1)
+ 
+ void
+ nis_destroy_object (nis_object *obj)
+ {
+   nis_free_object (obj);
+ }
+-libnsl_hidden_def (nis_destroy_object)
++libnsl_hidden_nolink_def (nis_destroy_object, GLIBC_2_1)
+diff --git a/nis/nis_table.c b/nis/nis_table.c
+index 1d607a49c4..83b776310c 100644
+--- a/nis/nis_table.c
++++ b/nis/nis_table.c
+@@ -127,7 +127,7 @@ __create_ib_request (const_nis_name name, unsigned int flags)
+ 
+   return ibreq;
+ }
+-libnsl_hidden_def (__create_ib_request)
++libnsl_hidden_nolink_def (__create_ib_request, GLIBC_PRIVATE)
+ 
+ static const struct timeval RPCTIMEOUT = {10, 0};
+ 
+@@ -200,7 +200,7 @@ __follow_path (char **tablepath, char **tableptr, struct ib_request *ibreq,
+ 
+   return NIS_SUCCESS;
+ }
+-libnsl_hidden_def (__follow_path)
++libnsl_hidden_nolink_def (__follow_path, GLIBC_PRIVATE)
+ 
+ 
+ nis_result *
+@@ -552,7 +552,7 @@ nis_list (const_nis_name name, unsigned int flags,
+ 
+   return res;
+ }
+-libnsl_hidden_def (nis_list)
++libnsl_hidden_nolink_def (nis_list, GLIBC_2_1)
+ 
+ nis_result *
+ nis_add_entry (const_nis_name name, const nis_object *obj2, unsigned int flags)
+@@ -613,6 +613,7 @@ nis_add_entry (const_nis_name name, const nis_object *obj2, unsigned int flags)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_add_entry, GLIBC_2_1)
+ 
+ nis_result *
+ nis_modify_entry (const_nis_name name, const nis_object *obj2,
+@@ -670,6 +671,7 @@ nis_modify_entry (const_nis_name name, const nis_object *obj2,
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_modify_entry, GLIBC_2_1)
+ 
+ nis_result *
+ nis_remove_entry (const_nis_name name, const nis_object *obj,
+@@ -718,6 +720,7 @@ nis_remove_entry (const_nis_name name, const nis_object *obj,
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_remove_entry, GLIBC_2_1)
+ 
+ nis_result *
+ nis_first_entry (const_nis_name name)
+@@ -755,6 +758,7 @@ nis_first_entry (const_nis_name name)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_first_entry, GLIBC_2_1)
+ 
+ nis_result *
+ nis_next_entry (const_nis_name name, const netobj *cookie)
+@@ -805,3 +809,4 @@ nis_next_entry (const_nis_name name, const netobj *cookie)
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (nis_next_entry, GLIBC_2_1)
+diff --git a/nis/nis_util.c b/nis/nis_util.c
+index f2dbe2540d..aabfc8cf9c 100644
+--- a/nis/nis_util.c
++++ b/nis/nis_util.c
+@@ -45,7 +45,7 @@ __nis_finddirectory (directory_obj *dir, const_nis_name name)
+ 
+   return fd_res;
+ }
+-libnsl_hidden_def (__nis_finddirectory)
++libnsl_hidden_nolink_def (__nis_finddirectory, GLIBC_2_1)
+ 
+ /* The hash implementation is in a separate file.  */
+ #include "nis_hash.c"
+diff --git a/nis/nis_verifygroup.c b/nis/nis_verifygroup.c
+index 1395fe4f26..81863c0974 100644
+--- a/nis/nis_verifygroup.c
++++ b/nis/nis_verifygroup.c
+@@ -48,3 +48,4 @@ nis_verifygroup (const_nis_name group)
+   else
+     return NIS_FAIL;
+ }
++libnsl_hidden_nolink_def (nis_verifygroup, GLIBC_2_1)
+diff --git a/nis/nis_xdr.c b/nis/nis_xdr.c
+index 4fda7df2eb..997ec62225 100644
+--- a/nis/nis_xdr.c
++++ b/nis/nis_xdr.c
+@@ -320,7 +320,7 @@ _xdr_nis_result (XDR *xdrs, nis_result *objp)
+     }
+   return res;
+ }
+-libnsl_hidden_def (_xdr_nis_result)
++libnsl_hidden_nolink_def (_xdr_nis_result, GLIBC_PRIVATE)
+ 
+ bool_t
+ _xdr_ns_request (XDR *xdrs, ns_request *objp)
+@@ -370,7 +370,7 @@ _xdr_ib_request (XDR *xdrs, ib_request *objp)
+     }
+   return res;
+ }
+-libnsl_hidden_def (_xdr_ib_request)
++libnsl_hidden_nolink_def (_xdr_ib_request, GLIBC_PRIVATE)
+ 
+ bool_t
+ _xdr_ping_args (XDR *xdrs, ping_args *objp)
+@@ -447,7 +447,7 @@ xdr_obj_p (XDR *xdrs, obj_p *objp)
+   return xdr_pointer (xdrs, (char **)objp, sizeof (nis_object),
+ 		      (xdrproc_t)_xdr_nis_object);
+ }
+-libnsl_hidden_def (xdr_obj_p)
++libnsl_hidden_nolink_def (xdr_obj_p, GLIBC_2_1)
+ 
+ bool_t
+ xdr_cback_data (XDR *xdrs, cback_data *objp)
+@@ -456,4 +456,4 @@ xdr_cback_data (XDR *xdrs, cback_data *objp)
+ 		    &objp->entries.entries_len, ~0,
+ 		    sizeof (obj_p), (xdrproc_t) xdr_obj_p);
+ }
+-libnsl_hidden_def (xdr_cback_data)
++libnsl_hidden_nolink_def (xdr_cback_data, GLIBC_2_1)
+diff --git a/nis/yp_xdr.c b/nis/yp_xdr.c
+index 34566d19a8..3d8b0bf3a6 100644
+--- a/nis/yp_xdr.c
++++ b/nis/yp_xdr.c
+@@ -45,35 +45,35 @@ xdr_ypstat (XDR *xdrs, ypstat *objp)
+ {
+   return xdr_enum (xdrs, (enum_t *) objp);
+ }
+-libnsl_hidden_def (xdr_ypstat)
++libnsl_hidden_nolink_def (xdr_ypstat, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypxfrstat (XDR *xdrs, ypxfrstat *objp)
+ {
+   return xdr_enum (xdrs, (enum_t *) objp);
+ }
+-libnsl_hidden_def (xdr_ypxfrstat)
++libnsl_hidden_nolink_def (xdr_ypxfrstat, GLIBC_2_0)
+ 
+ bool_t
+ xdr_domainname (XDR *xdrs, domainname *objp)
+ {
+   return xdr_string (xdrs, objp, XDRMAXNAME);
+ }
+-libnsl_hidden_def (xdr_domainname)
++libnsl_hidden_nolink_def (xdr_domainname, GLIBC_2_0)
+ 
+ bool_t
+ xdr_mapname (XDR *xdrs, mapname *objp)
+ {
+   return xdr_string (xdrs, objp, XDRMAXNAME);
+ }
+-libnsl_hidden_def (xdr_mapname)
++libnsl_hidden_nolink_def (xdr_mapname, GLIBC_2_0)
+ 
+ bool_t
+ xdr_peername (XDR *xdrs, peername *objp)
+ {
+   return xdr_string (xdrs, objp, XDRMAXNAME);
+ }
+-libnsl_hidden_def (xdr_peername)
++libnsl_hidden_nolink_def (xdr_peername, GLIBC_2_0)
+ 
+ bool_t
+ xdr_keydat (XDR *xdrs, keydat *objp)
+@@ -81,7 +81,7 @@ xdr_keydat (XDR *xdrs, keydat *objp)
+   return xdr_bytes (xdrs, (char **) &objp->keydat_val,
+ 		    (u_int *) &objp->keydat_len, XDRMAXRECORD);
+ }
+-libnsl_hidden_def (xdr_keydat)
++libnsl_hidden_nolink_def (xdr_keydat, GLIBC_2_0)
+ 
+ bool_t
+ xdr_valdat (XDR *xdrs, valdat *objp)
+@@ -89,7 +89,7 @@ xdr_valdat (XDR *xdrs, valdat *objp)
+   return xdr_bytes (xdrs, (char **) &objp->valdat_val,
+ 		    (u_int *) &objp->valdat_len, XDRMAXRECORD);
+ }
+-libnsl_hidden_def (xdr_valdat)
++libnsl_hidden_nolink_def (xdr_valdat, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypmap_parms (XDR *xdrs, ypmap_parms *objp)
+@@ -102,7 +102,7 @@ xdr_ypmap_parms (XDR *xdrs, ypmap_parms *objp)
+     return FALSE;
+   return xdr_peername (xdrs, &objp->peer);
+ }
+-libnsl_hidden_def (xdr_ypmap_parms)
++libnsl_hidden_nolink_def (xdr_ypmap_parms, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypreq_key (XDR *xdrs, ypreq_key *objp)
+@@ -113,7 +113,7 @@ xdr_ypreq_key (XDR *xdrs, ypreq_key *objp)
+     return FALSE;
+   return xdr_keydat (xdrs, &objp->key);
+ }
+-libnsl_hidden_def (xdr_ypreq_key)
++libnsl_hidden_nolink_def (xdr_ypreq_key, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypreq_nokey (XDR *xdrs, ypreq_nokey *objp)
+@@ -122,7 +122,7 @@ xdr_ypreq_nokey (XDR *xdrs, ypreq_nokey *objp)
+     return FALSE;
+   return xdr_mapname (xdrs, &objp->map);
+ }
+-libnsl_hidden_def (xdr_ypreq_nokey)
++libnsl_hidden_nolink_def (xdr_ypreq_nokey, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypreq_xfr (XDR *xdrs, ypreq_xfr *objp)
+@@ -135,6 +135,7 @@ xdr_ypreq_xfr (XDR *xdrs, ypreq_xfr *objp)
+     return FALSE;
+   return xdr_u_int (xdrs, &objp->port);
+ }
++libnsl_hidden_nolink_def (xdr_ypreq_xfr, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_val (XDR *xdrs, ypresp_val *objp)
+@@ -143,7 +144,7 @@ xdr_ypresp_val (XDR *xdrs, ypresp_val *objp)
+     return FALSE;
+   return xdr_valdat (xdrs, &objp->val);
+ }
+-libnsl_hidden_def (xdr_ypresp_val)
++libnsl_hidden_nolink_def (xdr_ypresp_val, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_key_val (XDR *xdrs, ypresp_key_val *objp)
+@@ -154,7 +155,7 @@ xdr_ypresp_key_val (XDR *xdrs, ypresp_key_val *objp)
+     return FALSE;
+   return xdr_keydat (xdrs, &objp->key);
+ }
+-libnsl_hidden_def (xdr_ypresp_key_val)
++libnsl_hidden_nolink_def (xdr_ypresp_key_val, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_master (XDR *xdrs, ypresp_master *objp)
+@@ -163,7 +164,7 @@ xdr_ypresp_master (XDR *xdrs, ypresp_master *objp)
+     return FALSE;
+   return xdr_peername (xdrs, &objp->peer);
+ }
+-libnsl_hidden_def (xdr_ypresp_master)
++libnsl_hidden_nolink_def (xdr_ypresp_master, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_order (XDR *xdrs, ypresp_order *objp)
+@@ -172,7 +173,7 @@ xdr_ypresp_order (XDR *xdrs, ypresp_order *objp)
+     return FALSE;
+   return xdr_u_int (xdrs, &objp->ordernum);
+ }
+-libnsl_hidden_def (xdr_ypresp_order)
++libnsl_hidden_nolink_def (xdr_ypresp_order, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_all (XDR *xdrs, ypresp_all *objp)
+@@ -190,7 +191,7 @@ xdr_ypresp_all (XDR *xdrs, ypresp_all *objp)
+     }
+   return TRUE;
+ }
+-libnsl_hidden_def (xdr_ypresp_all)
++libnsl_hidden_nolink_def (xdr_ypresp_all, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_xfr (XDR *xdrs, ypresp_xfr *objp)
+@@ -199,6 +200,7 @@ xdr_ypresp_xfr (XDR *xdrs, ypresp_xfr *objp)
+     return FALSE;
+   return xdr_ypxfrstat (xdrs, &objp->xfrstat);
+ }
++libnsl_hidden_nolink_def (xdr_ypresp_xfr, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypmaplist (XDR *xdrs, ypmaplist *objp)
+@@ -209,7 +211,7 @@ xdr_ypmaplist (XDR *xdrs, ypmaplist *objp)
+   char **tp = (void *) &objp->next;
+   return xdr_pointer (xdrs, tp, sizeof (ypmaplist), (xdrproc_t) xdr_ypmaplist);
+ }
+-libnsl_hidden_def (xdr_ypmaplist)
++libnsl_hidden_nolink_def (xdr_ypmaplist, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypresp_maplist (XDR *xdrs, ypresp_maplist *objp)
+@@ -220,14 +222,14 @@ xdr_ypresp_maplist (XDR *xdrs, ypresp_maplist *objp)
+   char **tp = (void *) &objp->maps;
+   return xdr_pointer (xdrs, tp, sizeof (ypmaplist), (xdrproc_t) xdr_ypmaplist);
+ }
+-libnsl_hidden_def (xdr_ypresp_maplist)
++libnsl_hidden_nolink_def (xdr_ypresp_maplist, GLIBC_2_0)
+ 
+ bool_t
+ xdr_yppush_status (XDR *xdrs, yppush_status *objp)
+ {
+   return xdr_enum (xdrs, (enum_t *) objp);
+ }
+-libnsl_hidden_def (xdr_yppush_status)
++libnsl_hidden_nolink_def (xdr_yppush_status, GLIBC_2_0)
+ 
+ bool_t
+ xdr_yppushresp_xfr (XDR *xdrs, yppushresp_xfr *objp)
+@@ -236,13 +238,14 @@ xdr_yppushresp_xfr (XDR *xdrs, yppushresp_xfr *objp)
+     return FALSE;
+   return xdr_yppush_status (xdrs, &objp->status);
+ }
++libnsl_hidden_nolink_def (xdr_yppushresp_xfr, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypbind_resptype (XDR *xdrs, ypbind_resptype *objp)
+ {
+   return xdr_enum (xdrs, (enum_t *) objp);
+ }
+-libnsl_hidden_def (xdr_ypbind_resptype)
++libnsl_hidden_nolink_def (xdr_ypbind_resptype, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypbind_binding (XDR *xdrs, ypbind_binding *objp)
+@@ -251,7 +254,7 @@ xdr_ypbind_binding (XDR *xdrs, ypbind_binding *objp)
+     return FALSE;
+   return xdr_opaque (xdrs, objp->ypbind_binding_port, 2);
+ }
+-libnsl_hidden_def (xdr_ypbind_binding)
++libnsl_hidden_nolink_def (xdr_ypbind_binding, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypbind_resp (XDR *xdrs, ypbind_resp *objp)
+@@ -267,7 +270,7 @@ xdr_ypbind_resp (XDR *xdrs, ypbind_resp *objp)
+     }
+   return FALSE;
+ }
+-libnsl_hidden_def (xdr_ypbind_resp)
++libnsl_hidden_nolink_def (xdr_ypbind_resp, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypbind_setdom (XDR *xdrs, ypbind_setdom *objp)
+@@ -278,6 +281,7 @@ xdr_ypbind_setdom (XDR *xdrs, ypbind_setdom *objp)
+     return FALSE;
+   return xdr_u_int (xdrs, &objp->ypsetdom_vers);
+ }
++libnsl_hidden_nolink_def (xdr_ypbind_setdom, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypall(XDR *xdrs, struct ypall_callback *incallback)
+@@ -322,3 +326,4 @@ xdr_ypall(XDR *xdrs, struct ypall_callback *incallback)
+ 	    return FALSE;
+     }
+ }
++/* XXX libnsl_hidden_nolink_def(xdr_ypall, GLIBC_2_2) */
+diff --git a/nis/ypclnt.c b/nis/ypclnt.c
+index 2bfade06cc..54721b065e 100644
+--- a/nis/ypclnt.c
++++ b/nis/ypclnt.c
+@@ -226,7 +226,7 @@ yp_bind (const char *indomain)
+ 
+   return status;
+ }
+-libnsl_hidden_def (yp_bind)
++libnsl_hidden_nolink_def (yp_bind, GLIBC_2_0)
+ 
+ static void
+ yp_unbind_locked (const char *indomain)
+@@ -266,6 +266,7 @@ yp_unbind (const char *indomain)
+ 
+   return;
+ }
++libnsl_hidden_nolink_def(yp_unbind, GLIBC_2_0)
+ 
+ static int
+ __ypclnt_call (const char *domain, u_long prog, xdrproc_t xargs,
+@@ -406,7 +407,7 @@ yp_get_default_domain (char **outdomain)
+ 
+   return result;
+ }
+-libnsl_hidden_def (yp_get_default_domain)
++libnsl_hidden_nolink_def (yp_get_default_domain, GLIBC_2_0)
+ 
+ int
+ __yp_check (char **domain)
+@@ -424,6 +425,7 @@ __yp_check (char **domain)
+     return 1;
+   return 0;
+ }
++libnsl_hidden_nolink_def(__yp_check, GLIBC_2_0)
+ 
+ int
+ yp_match (const char *indomain, const char *inmap, const char *inkey,
+@@ -468,6 +470,7 @@ yp_match (const char *indomain, const char *inmap, const char *inkey,
+ 
+   return status;
+ }
++libnsl_hidden_nolink_def(yp_match, GLIBC_2_0)
+ 
+ int
+ yp_first (const char *indomain, const char *inmap, char **outkey,
+@@ -522,6 +525,7 @@ yp_first (const char *indomain, const char *inmap, char **outkey,
+ 
+   return status;
+ }
++libnsl_hidden_nolink_def(yp_first, GLIBC_2_0)
+ 
+ int
+ yp_next (const char *indomain, const char *inmap, const char *inkey,
+@@ -578,6 +582,7 @@ yp_next (const char *indomain, const char *inmap, const char *inkey,
+ 
+   return status;
+ }
++libnsl_hidden_nolink_def(yp_next, GLIBC_2_0)
+ 
+ int
+ yp_master (const char *indomain, const char *inmap, char **outname)
+@@ -607,7 +612,7 @@ yp_master (const char *indomain, const char *inmap, char **outname)
+ 
+   return *outname == NULL ? YPERR_YPERR : YPERR_SUCCESS;
+ }
+-libnsl_hidden_def (yp_master)
++libnsl_hidden_nolink_def (yp_master, GLIBC_2_0)
+ 
+ int
+ yp_order (const char *indomain, const char *inmap, unsigned int *outorder)
+@@ -637,6 +642,7 @@ yp_order (const char *indomain, const char *inmap, unsigned int *outorder)
+ 
+   return result;
+ }
++libnsl_hidden_nolink_def(yp_order, GLIBC_2_0)
+ 
+ struct ypresp_all_data
+ {
+@@ -780,9 +786,9 @@ yp_all (const char *indomain, const char *inmap,
+ 
+   return res;
+ }
++libnsl_hidden_nolink_def (yp_all, GLIBC_2_0)
+ 
+ int
+-
+ yp_maplist (const char *indomain, struct ypmaplist **outmaplist)
+ {
+   struct ypresp_maplist resp;
+@@ -870,6 +876,7 @@ yperr_string (const int error)
+     }
+   return _(str);
+ }
++libnsl_hidden_nolink_def(yperr_string, GLIBC_2_0)
+ 
+ static const int8_t yp_2_yperr[] =
+   {
+@@ -893,7 +900,7 @@ ypprot_err (const int code)
+     return YPERR_YPERR;
+   return yp_2_yperr[code - YP_VERS];
+ }
+-libnsl_hidden_def (ypprot_err)
++libnsl_hidden_nolink_def (ypprot_err, GLIBC_2_0)
+ 
+ const char *
+ ypbinderr_string (const int error)
+@@ -919,7 +926,7 @@ ypbinderr_string (const int error)
+     }
+   return _(str);
+ }
+-libnsl_hidden_def (ypbinderr_string)
++libnsl_hidden_nolink_def (ypbinderr_string, GLIBC_2_0)
+ 
+ #define WINDOW 60
+ 
+@@ -1019,3 +1026,4 @@ again:
+     }
+   return res;
+ }
++libnsl_hidden_nolink_def(yp_update, GLIBC_2_0)
+diff --git a/nis/ypupdate_xdr.c b/nis/ypupdate_xdr.c
+index 9f6d69f96e..61d8880cab 100644
+--- a/nis/ypupdate_xdr.c
++++ b/nis/ypupdate_xdr.c
+@@ -37,7 +37,7 @@ xdr_yp_buf (XDR *xdrs, yp_buf *objp)
+   return xdr_bytes (xdrs, (char **) &objp->yp_buf_val,
+ 		    (u_int *) &objp->yp_buf_len, ~0);
+ }
+-libnsl_hidden_def (xdr_yp_buf)
++libnsl_hidden_nolink_def (xdr_yp_buf, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypupdate_args (XDR *xdrs, ypupdate_args *objp)
+@@ -48,7 +48,7 @@ xdr_ypupdate_args (XDR *xdrs, ypupdate_args *objp)
+     return FALSE;
+   return xdr_yp_buf (xdrs, &objp->datum);
+ }
+-libnsl_hidden_def (xdr_ypupdate_args)
++libnsl_hidden_nolink_def (xdr_ypupdate_args, GLIBC_2_0)
+ 
+ bool_t
+ xdr_ypdelete_args (XDR *xdrs, ypdelete_args *objp)
+@@ -57,4 +57,4 @@ xdr_ypdelete_args (XDR *xdrs, ypdelete_args *objp)
+     return FALSE;
+   return xdr_yp_buf (xdrs, &objp->key);
+ }
+-libnsl_hidden_def (xdr_ypdelete_args)
++libnsl_hidden_nolink_def (xdr_ypdelete_args, GLIBC_2_0)
+-- 
+2.34.1
+

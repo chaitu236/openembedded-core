@@ -41,6 +41,7 @@ SRC_URI = "${GLIBC_GIT_URI};branch=${SRCBRANCH};name=glibc \
            file://0029-Fix-nss_nisplus-build-with-mainline-GCC-bug-20978.patch \
            file://0030-aclocal.m4-Set-GLIBC_AUTOCONF_VERSION-to-2.71.patch \
            file://0031-sunrpc-Disable-generation-of-yppasswd.h.patch \
+           file://0032-Deprecate-libnsl-by-default-only-shared-library-will.patch \
            file://0001-Avoid-.symver-on-common-symbols-BZ-21666.patch \
            file://0001-Fix-warnings-from-latest-GCC.patch \
 "
