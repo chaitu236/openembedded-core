@@ -14,7 +14,7 @@ SRC_URI = "http://www.openssl.org/source/openssl-${PV}.tar.gz \
            file://0001-Added-handshake-history-reporting-when-test-fails.patch \
            "
 
-SRC_URI:append:class-nativesdk = " \
+SRC_URI_append_class-nativesdk = " \
            file://environment.d-openssl.sh \
            "
 
@@ -24,8 +24,8 @@ inherit lib_package multilib_header multilib_script ptest perlnative manpages
 MULTILIB_SCRIPTS = "${PN}-bin:${bindir}/c_rehash"
 
 PACKAGECONFIG ?= ""
-PACKAGECONFIG:class-native = ""
-PACKAGECONFIG:class-nativesdk = ""
+PACKAGECONFIG_class-native = ""
+PACKAGECONFIG_class-nativesdk = ""
 
 PACKAGECONFIG[cryptodev-linux] = "enable-devcryptoeng,disable-devcryptoeng,cryptodev-linux,,cryptodev-module"
 PACKAGECONFIG[no-tls1] = "no-tls1"
@@ -40,17 +40,17 @@ EXTRA_OECONF = "${@bb.utils.contains('PTEST_ENABLED', '1', '', 'no-tests', d)}"
 #| ./libcrypto.so: undefined reference to `getcontext'
 #| ./libcrypto.so: undefined reference to `setcontext'
 #| ./libcrypto.so: undefined reference to `makecontext'
-EXTRA_OECONF:append:libc-musl = " no-async"
-EXTRA_OECONF:append:libc-musl:powerpc64 = " no-asm"
+EXTRA_OECONF_append_libc-musl = " no-async"
+EXTRA_OECONF_append_libc-musl_powerpc64 = " no-asm"
 
 # adding devrandom prevents openssl from using getrandom() which is not available on older glibc versions
 # (native versions can be built with newer glibc, but then relocated onto a system with older glibc)
-EXTRA_OECONF:append:class-native = " --with-rand-seed=os,devrandom"
-EXTRA_OECONF:append:class-nativesdk = " --with-rand-seed=os,devrandom"
+EXTRA_OECONF_append_class-native = " --with-rand-seed=os,devrandom"
+EXTRA_OECONF_append_class-nativesdk = " --with-rand-seed=os,devrandom"
 
 # Relying on hardcoded built-in paths causes openssl-native to not be relocateable from sstate.
-CFLAGS:append:class-native = " -DOPENSSLDIR=/not/builtin -DENGINESDIR=/not/builtin"
-CFLAGS:append:class-nativesdk = " -DOPENSSLDIR=/not/builtin -DENGINESDIR=/not/builtin"
+CFLAGS_append_class-native = " -DOPENSSLDIR=/not/builtin -DENGINESDIR=/not/builtin"
+CFLAGS_append_class-nativesdk = " -DOPENSSLDIR=/not/builtin -DENGINESDIR=/not/builtin"
 
 # This allows disabling deprecated or undesirable crypto algorithms.
 # The default is to trust upstream choices.
@@ -146,7 +146,7 @@ do_configure () {
 	perl ${B}/configdata.pm --dump
 }
 
-do_compile:append () {
+do_compile_append () {
 	# The test suite binaries are large and we don't need the debugging in them
 	if test -d ${B}/test; then
 		find ${B}/test -type f -executable -exec ${STRIP} {} \;
@@ -174,7 +174,7 @@ do_install () {
 	ln -sf ${@oe.path.relative('${libdir}/ssl-3', '${sysconfdir}/ssl/openssl.cnf')} ${D}${libdir}/ssl-3/openssl.cnf
 }
 
-do_install:append:class-native () {
+do_install_append_class-native () {
 	create_wrapper ${D}${bindir}/openssl \
 	    OPENSSL_CONF=${libdir}/ssl-3/openssl.cnf \
 	    SSL_CERT_DIR=${libdir}/ssl-3/certs \
@@ -183,7 +183,7 @@ do_install:append:class-native () {
 	    OPENSSL_MODULES=${libdir}/ossl-modules
 }
 
-do_install:append:class-nativesdk () {
+do_install_append_class-nativesdk () {
 	mkdir -p ${D}${SDKPATHNATIVE}/environment-setup.d
 	install -m 644 ${UNPACKDIR}/environment.d-openssl.sh ${D}${SDKPATHNATIVE}/environment-setup.d/openssl.sh
 	sed 's|/usr/lib/ssl/|/usr/lib/ssl-3/|g' -i ${D}${SDKPATHNATIVE}/environment-setup.d/openssl.sh
@@ -237,29 +237,29 @@ do_install_ptest() {
 
 PACKAGES =+ "libcrypto libssl openssl-conf ${PN}-engines ${PN}-misc ${PN}-ossl-module-legacy"
 
-FILES:libcrypto = "${libdir}/libcrypto${SOLIBS}"
-FILES:libssl = "${libdir}/libssl${SOLIBS}"
-FILES:openssl-conf = "${sysconfdir}/ssl/openssl.cnf \
+FILES_libcrypto = "${libdir}/libcrypto${SOLIBS}"
+FILES_libssl = "${libdir}/libssl${SOLIBS}"
+FILES_openssl-conf = "${sysconfdir}/ssl/openssl.cnf \
                       ${libdir}/ssl-3/openssl.cnf* \
                       "
-FILES:${PN}-engines = "${libdir}/engines-3"
+FILES_${PN}-engines = "${libdir}/engines-3"
 # ${prefix} comes from what we pass into --prefix at configure time (which is used for INSTALLTOP)
-FILES:${PN}-engines:append:mingw32:class-nativesdk = " ${prefix}${libdir}/engines-3"
-FILES:${PN}-misc = "${libdir}/ssl-3/misc ${bindir}/c_rehash"
-FILES:${PN}-ossl-module-legacy = "${libdir}/ossl-modules/legacy.so"
-FILES:${PN} =+ "${libdir}/ssl-3/* ${libdir}/ossl-modules/"
-FILES:${PN}:append:class-nativesdk = " ${SDKPATHNATIVE}/environment-setup.d/openssl.sh"
+FILES_${PN}-engines_append_mingw32_class-nativesdk = " ${prefix}${libdir}/engines-3"
+FILES_${PN}-misc = "${libdir}/ssl-3/misc ${bindir}/c_rehash"
+FILES_${PN}-ossl-module-legacy = "${libdir}/ossl-modules/legacy.so"
+FILES_${PN} =+ "${libdir}/ssl-3/* ${libdir}/ossl-modules/"
+FILES_${PN}_append_class-nativesdk = " ${SDKPATHNATIVE}/environment-setup.d/openssl.sh"
 
-CONFFILES:openssl-conf = "${sysconfdir}/ssl/openssl.cnf"
+CONFFILES_openssl-conf = "${sysconfdir}/ssl/openssl.cnf"
 
-RRECOMMENDS:libcrypto += "openssl-conf ${PN}-ossl-module-legacy"
-RDEPENDS:${PN}-misc = "perl"
-RDEPENDS:${PN}-ptest += "openssl-bin perl perl-modules bash sed openssl-engines openssl-ossl-module-legacy"
+RRECOMMENDS_libcrypto += "openssl-conf ${PN}-ossl-module-legacy"
+RDEPENDS_${PN}-misc = "perl"
+RDEPENDS_${PN}-ptest += "openssl-bin perl perl-modules bash sed openssl-engines openssl-ossl-module-legacy"
 
-RDEPENDS:${PN}-bin += "openssl-conf"
+RDEPENDS_${PN}-bin += "openssl-conf"
 
 # The test suite is installed stripped
-INSANE_SKIP:${PN} = "already-stripped"
+INSANE_SKIP_${PN} = "already-stripped"
 
 BBCLASSEXTEND = "native nativesdk"
 
