@@ -210,7 +210,7 @@ fitimage_emit_section_boot_script() {
 	bootscr_sign_keyname="${UBOOT_SIGN_IMG_KEYNAME}"
 
         cat << EOF >> $1
-                bootscr-$2 {
+                bootscript@$2 {
                         description = "U-boot script";
                         data = /incbin/("$3");
                         type = "script";
@@ -391,7 +391,11 @@ fitimage_emit_section_config() {
 	# conf node name is selected based on dtb ID if it is present,
 	# otherwise its selected based on kernel ID
 	if [ -n "$dtb_image" ]; then
-		conf_node=$conf_node$dtb_image
+		# DeviceCode in uboot env for NI devices is of format 0x76D6.
+		# And since bootscript.txt can't remove '0x' from DeviceCode before
+		# calling bootm, change FDT configuration node instead to add '0x'.
+		conf_node_dtb_image_name=ni-0x${dtb_image#*-}
+		conf_node=$conf_node$conf_node_dtb_image_name
 	else
 		conf_node=$conf_node$kernel_id
 	fi
@@ -614,6 +618,16 @@ fitimage_assemble() {
 			fitimage_emit_section_boot_script $1 "$bootscr_id" ${UBOOT_ENV_BINARY}
 		else
 			bbwarn "${STAGING_DIR_HOST}/boot/${UBOOT_ENV_BINARY} not found."
+		fi
+	else
+		if [ -n "${UBOOT_ENV_BINARY}" ]; then
+			if [ -e "${WORKDIR}/${UBOOT_ENV_BINARY}" ]; then
+				cp ${WORKDIR}/${UBOOT_ENV_BINARY} ${B}
+				bootscr_id="${UBOOT_ENV_BINARY}"
+				fitimage_emit_section_boot_script $1 "1" ${UBOOT_ENV_BINARY}
+			else
+				bberror "${WORKDIR}/${UBOOT_ENV_BINARY} not found."
+			fi
 		fi
 	fi
 
