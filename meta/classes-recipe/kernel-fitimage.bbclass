@@ -619,16 +619,6 @@ fitimage_assemble() {
 		else
 			bbwarn "${STAGING_DIR_HOST}/boot/${UBOOT_ENV_BINARY} not found."
 		fi
-	else
-		if [ -n "${UBOOT_ENV_BINARY}" ]; then
-			if [ -e "${WORKDIR}/${UBOOT_ENV_BINARY}" ]; then
-				cp ${WORKDIR}/${UBOOT_ENV_BINARY} ${B}
-				bootscr_id="${UBOOT_ENV_BINARY}"
-				fitimage_emit_section_boot_script $1 "1" ${UBOOT_ENV_BINARY}
-			else
-				bberror "${WORKDIR}/${UBOOT_ENV_BINARY} not found."
-			fi
-		fi
 	fi
 
 	#
